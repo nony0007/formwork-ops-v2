@@ -20,7 +20,7 @@ const routes = {
   checkout: CheckoutView,
   maintenance: MaintenanceView,
   alerts: AlertsView,
-  admin: AdminView,
+  admin: AdminView,            // <-- fixed: AdminView now defined below
   movements: MovementsView
 };
 
@@ -104,6 +104,7 @@ function kpis(db){
 }
 function kpi(label,value){ return el('div',{class:'kpi'},[el('div',{class:'label'},label),el('div',{class:'value'},String(value))]); }
 
+// Inventory
 function InventoryView(db){
   const root = el('div',{class:'grid'});
   root.appendChild(kpis(db));
@@ -331,7 +332,7 @@ function openBulkCSV(db){
   i.type = 'file'; i.accept = '.csv';
   i.onchange = async ()=>{
     const text = await i.files[0].text();
-    const lines = text.trim().split(/\\r?\\n/);
+    const lines = text.trim().split(/\r?\n/);
     const hdr = lines.shift().split(',');
     const a = hdr.map(h=>h.trim().toLowerCase());
     const idxF=a.indexOf('from'), idxT=a.indexOf('to'), idxS=a.indexOf('sku'), idxQ=a.indexOf('qty');
@@ -587,6 +588,52 @@ function flagDamaged(db,id){
   c.status='Damaged'; setDB(db); render();
 }
 
+// Maintenance
+function MaintenanceView(db){
+  const root = el('div',{class:'grid'});
+  root.appendChild(el('div',{class:'panel'},[
+    el('div',{class:'row'},[
+      el('button',{class:'btn', onClick:()=>alert('Inspections list coming soon')},'Inspections'),
+      el('button',{class:'btn', onClick:()=>alert('Service planner coming soon')},'Service Planner'),
+      el('button',{class:'btn', onClick:()=>uploadDoc()},'Upload MSDS')
+    ])
+  ]));
+  const table = el('table',{class:'table'});
+  table.innerHTML = `<thead><tr><th>Asset</th><th>Hours</th><th>Next Service</th><th>Last Inspection</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Manitou MRT 2550</td><td>2210</td><td>250h due in 40h</td><td>Yesterday</td><td><span class="badge">OK</span></td></tr>
+    <tr><td>Concrete Vibrator 38mm</td><td>120</td><td>Service Q4</td><td>2 weeks</td><td><span class="badge">OK</span></td></tr>
+  </tbody>`;
+  root.appendChild(el('div',{class:'panel'},table));
+  return root;
+  function uploadDoc(){ const i = document.createElement('input'); i.type = 'file'; i.onchange = ()=>alert('Document uploaded (demo)'); i.click(); }
+}
+
+// Admin (NEW)
+function AdminView(db){
+  const root = el('div',{class:'grid'});
+  root.appendChild(el('div',{class:'panel'},[
+    el('h3',{},'Admin & Data'),
+    el('p',{},'Backup or restore your local data, reset to demo, or print QR labels.'),
+    el('div',{class:'row'},[
+      el('button',{class:'btn', onClick:backupDB},'Backup'),
+      el('button',{class:'btn', onClick:()=>document.getElementById('btn-restore').click()},'Restore'),
+      el('button',{class:'btn danger', onClick:()=>{ if(confirm('Reset local data to demo seed?')){ resetDB(); location.reload(); } }},'Reset Demo')
+    ]),
+    el('hr',{class:'sep'}),
+    el('h4',{},'Generate QR'),
+    el('div',{class:'row'},[
+      el('button',{class:'btn ghost', onClick:()=>openQrLabel({sku:'DK-FRMX-120x270',location:'Y1',bin:'B-001'})},'Sample Item QR'),
+      el('button',{class:'btn ghost', onClick:()=>openQrLabel({pallet:'PAL-0001'})},'Sample Pallet QR'),
+      el('button',{class:'btn ghost', onClick:()=>openQrLabel({docket:'D-123456'})},'Sample Docket QR')
+    ]),
+    el('hr',{class:'sep'}),
+    el('h4',{},'About'),
+    el('p',{},'Formwork Ops v2.1 — static PWA running on GitHub Pages.')
+  ]));
+  return root;
+}
+
 // Movements
 function MovementsView(db){
   const root = el('div',{class:'grid'});
@@ -609,7 +656,7 @@ function MovementsView(db){
   return root;
 }
 
-// QR
+// QR helpers
 function openQrLabel(payload){
   const dlg = panelDialog('QR Label');
   const canvas = el('canvas',{width:'180', height:'180'});
@@ -672,6 +719,6 @@ function addMovement(db, m){ db.movements.push({ts:Date.now(), ...m}); setDB(db)
     const db = ensureDB();
     const total = db.stock.reduce((a,b)=>a+b.qty,0);
     console.assert(total>0, 'stock should not be empty');
-    console.log('[FOPS v2] self-tests OK');
-  }catch(e){ console.warn('[FOPS v2] tests failed', e); }
+    console.log('[FOPS v2.1] self-tests OK');
+  }catch(e){ console.warn('[FOPS v2.1] tests failed', e); }
 })();
